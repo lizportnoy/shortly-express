@@ -1,7 +1,8 @@
 var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
-var bodyParser = require('body-parser');
+var bodyParser = require('body-parser')
+var session = require('express-session')
 
 
 var db = require('./app/config');
@@ -20,27 +21,36 @@ app.use(partials());
 app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(session({secret: 'Shhhh',
+                 resave: false,
+                 saveUninitialized: true }));
 app.use(express.static(__dirname + '/public'));
 
 
-app.get('/', 
+var sess;
+app.get('/',
+function(req, res) {
+
+  sess = req.session;
+  sess.username;
+  sess.password;
+  // console.log(sess);
+  res.render('index');
+});
+
+app.get('/create',
 function(req, res) {
   res.render('index');
 });
 
-app.get('/create', 
-function(req, res) {
-  res.render('index');
-});
-
-app.get('/links', 
+app.get('/links',
 function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
   });
 });
 
-app.post('/links', 
+app.post('/links',
 function(req, res) {
   var uri = req.body.url;
 
@@ -77,7 +87,10 @@ function(req, res) {
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
-
+app.get('/login',
+function(req, res) {
+  res.render('login');
+});
 
 
 /************************************************************/
