@@ -56,6 +56,8 @@ function(req, res) {
       res.send(200, links.models);
       res.end();
     });
+  } else {
+    res.redirect('/login')
   }
 });
 
@@ -119,7 +121,7 @@ function(req, res){
           util.createSession(req, res, username);
         } else {
           console.log('Ur wrong');
-          res.redirect('/login');
+          res.redirect('/');
         }
       });
 

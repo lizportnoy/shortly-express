@@ -285,14 +285,14 @@ describe('', function() {
 
   }); // 'Account Creation'
 
-  xdescribe('Account Login:', function(){
+  describe('Account Login:', function(){
 
     var requestWithSession = request.defaults({jar: true});
 
     beforeEach(function(done){
       new User({
-          'username': 'Phillip',
-          'password': 'Phillip'
+          'username': 'Phillips',
+          'password': 'Phillips'
       }).save().then(function(){
         done()
       });
@@ -303,8 +303,8 @@ describe('', function() {
         'method': 'POST',
         'uri': 'http://127.0.0.1:4568/login',
         'json': {
-          'username': 'Phillip',
-          'password': 'Phillip'
+          'username': 'Phillips',
+          'password': 'Phillips'
         }
       };
 
