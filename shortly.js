@@ -1,8 +1,8 @@
 var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
-var bodyParser = require('body-parser')
-var session = require('express-session')
+var bodyParser = require('body-parser');
+var session = require('express-session');
 
 
 var db = require('./app/config');
@@ -35,19 +35,30 @@ function(req, res) {
   sess.username;
   sess.password;
   // console.log(sess);
+  if(sess.username) {
   res.render('index');
+  }
+  res.redirect('/login');
 });
 
 app.get('/create',
 function(req, res) {
-  res.render('index');
+  sess = req.session;
+  if(sess.username){
+    res.render('index');
+  }
+  res.redirect('/login');
 });
 
 app.get('/links',
 function(req, res) {
-  Links.reset().fetch().then(function(links) {
-    res.send(200, links.models);
-  });
+  sess = req.session;
+  if(sess.username){
+    Links.reset().fetch().then(function(links) {
+      res.send(200, links.models);
+    });
+  }
+  res.redirect('/login');
 });
 
 app.post('/links',
@@ -92,7 +103,79 @@ function(req, res) {
   res.render('login');
 });
 
+app.get('/signup',
+function(req, res) {
+  res.render('signup');
+});
 
+app.post('/login',
+function(req, res){
+  var username = req.body.username;
+  var password = req.body.password;
+
+  new User({ username: username, password: password}).fetch().then(function(found) {
+    if (found) {
+      sess = req.session;
+// if password / username combo exists in storage
+      sess.username = req.body.username;
+      res.redirect('/');
+    } else {
+      console.log('incorrect password and username combo. Please try again :(');
+      res.redirect('/login');
+    }
+  });
+  // sess = req.session;
+  // // if password / username combo exists in storage
+  // sess.username = req.body.username;
+  // res.end('completed');
+  // else wrong password or login... redict to empty login page
+});
+
+app.post('/signup',
+function(req, res){
+  var username = req.body.username;
+  var password = req.body.password;
+
+  new User({ username: username}).fetch().then(function(found) {
+    if (found) {
+      console.log('username is already taken, please choose another');
+      res.redirect('/signup');
+    } else {
+      var user = new User({
+        username: username,
+        password: password
+      });
+
+      user.save().then(function(newUser) {
+        Users.add(newUser);
+      });
+
+      sess = req.session;
+// if password / username combo exists in storage
+      sess.username = req.body.username;
+      res.redirect('/');
+    }
+  });
+});
+  //send username and password to db
+  //hash new password and store hashedPass and username in database
+  //then send it to login
+  //
+  // sess = req.session
+  // sess.username = req.body.username;
+  // res.end('completed');
+// });
+
+app.get('/logout',
+function(req, res){
+  req.session.destroy(function(err){
+    if(err) {
+      console.error(err);
+    } else {
+      res.redirect('/');
+    }
+  });
+});
 /************************************************************/
 // Handle the wildcard route last - if all other routes fail
 // assume the route is a short code and try and handle it here.
