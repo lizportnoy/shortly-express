@@ -11,6 +11,7 @@ var User = require('./app/models/user');
 var Links = require('./app/collections/links');
 var Link = require('./app/models/link');
 var Click = require('./app/models/click');
+var bcrypt = require('bcrypt-nodejs');
 
 var app = express();
 
@@ -31,20 +32,18 @@ var sess;
 app.get('/',
 function(req, res) {
 
-  sess = req.session;
-  sess.username;
-  sess.password;
   // console.log(sess);
-  if(sess.username) {
-  res.render('index');
+  if(req.session.user) {
+    res.render('index');
+    res.end();
+  } else{
+    res.redirect('/login');
   }
-  res.redirect('/login');
 });
 
 app.get('/create',
 function(req, res) {
-  sess = req.session;
-  if(sess.username){
+  if(req.session.user){
     res.render('index');
   }
   res.redirect('/login');
@@ -52,13 +51,12 @@ function(req, res) {
 
 app.get('/links',
 function(req, res) {
-  sess = req.session;
-  if(sess.username){
+  if(req.session.user){
     Links.reset().fetch().then(function(links) {
       res.send(200, links.models);
+      res.end();
     });
   }
-  res.redirect('/login');
 });
 
 app.post('/links',
@@ -113,22 +111,24 @@ function(req, res){
   var username = req.body.username;
   var password = req.body.password;
 
-  new User({ username: username, password: password}).fetch().then(function(found) {
+  new User({ username: username}).fetch().then(function(found) {
     if (found) {
-      sess = req.session;
-// if password / username combo exists in storage
-      sess.username = req.body.username;
-      res.redirect('/');
+      var hash = found.get('password');
+      bcrypt.compare(password, hash, function (err, match) {
+        if (match) {
+          util.createSession(req, res, username);
+        } else {
+          console.log('Ur wrong');
+          res.redirect('/login');
+        }
+      });
+
     } else {
-      console.log('incorrect password and username combo. Please try again :(');
+      console.log('Username does not exist. Please create an account or enter correct user name:(');
       res.redirect('/login');
     }
   });
-  // sess = req.session;
-  // // if password / username combo exists in storage
-  // sess.username = req.body.username;
-  // res.end('completed');
-  // else wrong password or login... redict to empty login page
+
 });
 
 app.post('/signup',
@@ -141,19 +141,21 @@ function(req, res){
       console.log('username is already taken, please choose another');
       res.redirect('/signup');
     } else {
-      var user = new User({
-        username: username,
-        password: password
+      bcrypt.hash(password, null, null, function(err, hash){
+        console.log(hash);
+        var user = new User({
+          username: username,
+          password: hash
+        });
+
+        user.save().then(function(newUser) {
+          console.log(newUser);
+          Users.add(newUser);
+        });
+
+        util.createSession(req, res, user);
       });
 
-      user.save().then(function(newUser) {
-        Users.add(newUser);
-      });
-
-      sess = req.session;
-// if password / username combo exists in storage
-      sess.username = req.body.username;
-      res.redirect('/');
     }
   });
 });
@@ -162,7 +164,7 @@ function(req, res){
   //then send it to login
   //
   // sess = req.session
-  // sess.username = req.body.username;
+  // req.session.user = req.body.username;
   // res.end('completed');
 // });
 
